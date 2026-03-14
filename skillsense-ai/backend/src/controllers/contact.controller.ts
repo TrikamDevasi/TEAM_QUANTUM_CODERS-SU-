@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import ContactRequest from '../models/ContactRequest.model';
 import { sendDemoRequest } from '../services/email.service';
-import { buildApiResponse } from '../utils/pagination.utils';
+import { buildApiResponse, parsePagination, buildPaginatedResponse } from '../utils/pagination.utils';
 
 const contactSchema = z.object({
   name: z.string().min(2).max(100),
@@ -29,5 +29,19 @@ export const createContactRequest = async (req: Request, res: Response, next: Ne
       { id: contactReq._id, status: contactReq.status },
       'Demo request received. We will be in touch within 1-2 business days.'
     ));
+  } catch (err) { next(err); }
+};
+
+export const listContactRequests = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { skip, limit, page } = parsePagination(req.query);
+    const filter: Record<string, unknown> = {};
+    if (req.query.status) filter.status = req.query.status;
+
+    const [requests, total] = await Promise.all([
+      ContactRequest.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      ContactRequest.countDocuments(filter),
+    ]);
+    res.status(200).json(buildPaginatedResponse(requests, total, page, limit, 'Contact requests retrieved'));
   } catch (err) { next(err); }
 };

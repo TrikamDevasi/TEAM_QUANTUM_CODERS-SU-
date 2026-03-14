@@ -6,7 +6,7 @@ export const auditLog = (action: string, resource: string): RequestHandler => {
   return (req, res, next) => {
     res.on('finish', () => {
       AuditLog.create({
-        userId: req.user?.userId,
+        userId: req.user ? String(req.user._id) : undefined,
         userRole: req.user?.role,
         action,
         resource,

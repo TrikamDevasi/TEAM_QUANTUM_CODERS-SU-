@@ -1,8 +1,44 @@
 import { Request, Response, NextFunction } from 'express';
+import { z } from 'zod';
 import Student from '../models/Student.model';
 import Assessment from '../models/Assessment.model';
-import * as aiService from '../services/ai.service';
-import { buildApiResponse } from '../utils/pagination.utils';
+import { aiService } from '../services/ai.service';
+import { buildApiResponse, parsePagination, buildPaginatedResponse } from '../utils/pagination.utils';
+
+export const listStudents = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { skip, limit, page } = parsePagination(req.query);
+    const filter: Record<string, unknown> = {};
+    if (req.query.state) filter.state = req.query.state;
+    if (req.query.program) filter.program = req.query.program;
+    if (req.query.placementStatus) filter.placementStatus = req.query.placementStatus;
+    if (req.query.institutionId) filter.institutionId = req.query.institutionId;
+
+    const [students, total] = await Promise.all([
+      Student.find(filter).skip(skip).limit(limit).select('-skills.history'),
+      Student.countDocuments(filter),
+    ]);
+    res.status(200).json(buildPaginatedResponse(students, total, page, limit, 'Students retrieved'));
+  } catch (err) { next(err); }
+};
+
+const updateStudentSchema = z.object({
+  phone: z.string().optional(),
+  state: z.string().optional(),
+  program: z.string().optional(),
+  nsqfLevel: z.number().int().min(1).max(8).optional(),
+  placementStatus: z.enum(['seeking', 'placed', 'not_seeking']).optional(),
+}).strict().partial();
+
+export const updateStudent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const updates = updateStudentSchema.parse(req.body);
+    const student = await Student.findByIdAndUpdate(req.params.id, updates, { new: true });
+    if (!student) { res.status(404).json(buildApiResponse(null, 'Student not found', false)); return; }
+    res.status(200).json(buildApiResponse(student, 'Student updated'));
+  } catch (err) { next(err); }
+};
+
 
 export const getStudent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -50,7 +86,7 @@ export const submitAssessment = async (req: Request, res: Response, next: NextFu
       adaptiveLevel: adaptiveLevel ?? 1,
     });
 
-    // Call AI service (stub or live)
+    // Call AI service to extract skill scores from responses
     const skillScores = await aiService.extractSkills(responses ?? []);
 
     // Update student skill score
@@ -75,7 +111,25 @@ export const submitAssessment = async (req: Request, res: Response, next: NextFu
 
 export const getCareerPaths = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const prediction = await aiService.predictOutcome(String(req.params.id));
+    const student = await Student.findById(req.params.id)
+      .populate('skills.skillId', 'name domain')
+      .select('skills program nsqfLevel state gender');
+    if (!student) {
+      res.status(404).json(buildApiResponse(null, 'Student not found', false));
+      return;
+    }
+    const skills = student.skills.map((s: any) => ({
+      skill: (s.skillId as any)?.name ?? String(s.skillId),
+      score: s.score,
+    }));
+    const prediction = await aiService.matchCareerPaths({
+      skills,
+      program: student.program,
+      nsqfLevel: student.nsqfLevel,
+      overallScore: student.overallScore ?? 50,
+      state: student.state,
+      gender: student.gender as 'male' | 'female',
+    });
     res.status(200).json(buildApiResponse(prediction, 'Career paths retrieved'));
   } catch (err) { next(err); }
 };

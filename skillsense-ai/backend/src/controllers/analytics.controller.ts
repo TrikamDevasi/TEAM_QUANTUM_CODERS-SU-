@@ -84,3 +84,106 @@ export const getFundTargeting = async (req: Request, res: Response, next: NextFu
     res.status(200).json(buildApiResponse(results, 'Fund targeting data retrieved'));
   } catch (err) { next(err); }
 };
+
+// ── NEW: Dashboard summary ────────────────────────────────────────────────────
+export const getDashboard = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const cacheKey = 'analytics:dashboard';
+    const cached = await get<unknown>(cacheKey);
+    if (cached) { res.status(200).json(buildApiResponse(cached, 'Dashboard data retrieved (cached)')); return; }
+
+    const { default: Student } = await import('../models/Student.model');
+    const { default: Institution } = await import('../models/Institution.model');
+
+    const [totalStudents, totalInstitutions, placedStudents, skillGaps, placementTrends] = await Promise.all([
+      Student.countDocuments(),
+      Institution.countDocuments({ isVerified: true }),
+      Student.countDocuments({ placementStatus: 'placed' }),
+      getSkillGapData(),
+      getPlacementTrends(),
+    ]);
+
+    const dashboard = {
+      totalStudents,
+      totalInstitutions,
+      placedStudents,
+      overallPlacementRate: totalStudents ? Math.round((placedStudents / totalStudents) * 100) : 0,
+      topSkillGaps: (skillGaps as Array<{ name: string; gap: number }>).slice(0, 5),
+      recentPlacementTrends: placementTrends,
+    };
+
+    await set(cacheKey, dashboard, 300);
+    res.status(200).json(buildApiResponse(dashboard, 'Dashboard data retrieved'));
+  } catch (err) { next(err); }
+};
+
+// ── NEW: Per-student skill gap analysis (AI powered) ─────────────────────────
+export const getStudentSkillGaps = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { studentId } = req.params;
+    const cacheKey = `analytics:skill-gaps:${studentId}`;
+    const cached = await get<unknown>(cacheKey);
+    if (cached) { res.status(200).json(buildApiResponse(cached, 'Skill gap analysis retrieved (cached)')); return; }
+
+    const { default: Student } = await import('../models/Student.model');
+    const student = await Student.findById(studentId);
+    if (!student) { res.status(404).json(buildApiResponse(null, 'Student not found', false)); return; }
+
+    const { aiService } = await import('../services/ai.service');
+    const analysis = await aiService.analyzeSkillGaps({
+      studentId: String(student._id),
+      studentName: student.enrollmentNumber,  // use enrollment number as identifier
+      program: student.program,
+      nsqfLevel: student.nsqfLevel,
+      skills: student.skills.map((s) => ({ skill: String(s.skillId), score: s.score })),
+    });
+
+    await set(cacheKey, analysis, 600);
+    res.status(200).json(buildApiResponse(analysis, 'Skill gap analysis complete'));
+  } catch (err) { next(err); }
+};
+
+// ── NEW: Per-student career path matching (AI powered) ───────────────────────
+export const getStudentCareerPaths = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { studentId } = req.params;
+    const cacheKey = `analytics:career-paths:${studentId}`;
+    const cached = await get<unknown>(cacheKey);
+    if (cached) { res.status(200).json(buildApiResponse(cached, 'Career paths retrieved (cached)')); return; }
+
+    const { default: Student } = await import('../models/Student.model');
+    const student = await Student.findById(studentId);
+    if (!student) { res.status(404).json(buildApiResponse(null, 'Student not found', false)); return; }
+
+    const { aiService } = await import('../services/ai.service');
+    const paths = await aiService.matchCareerPaths({
+      program: student.program,
+      nsqfLevel: student.nsqfLevel,
+      overallScore: student.overallScore ?? 0,
+      state: student.state,
+      gender: (student.gender as 'male' | 'female') ?? 'male',
+      skills: student.skills.map((s) => ({ skill: String(s.skillId), score: s.score })),
+    });
+
+    await set(cacheKey, paths, 600);
+    res.status(200).json(buildApiResponse(paths, 'Career path analysis complete'));
+  } catch (err) { next(err); }
+};
+
+// ── NEW: Industry demand by domain (Perplexity powered) ───────────────────────
+export const getIndustryDemandByDomain = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const rawDomain = req.params.domain || req.query.domain;
+    const domain = typeof rawDomain === 'string' ? rawDomain
+      : Array.isArray(rawDomain) ? String(rawDomain[0])
+      : 'technology';
+    const cacheKey = `analytics:industry-demand:${domain}`;
+    const cached = await get<unknown>(cacheKey);
+    if (cached) { res.status(200).json(buildApiResponse(cached, `Industry demand for ${domain} (cached)`)); return; }
+
+    const { aiService } = await import('../services/ai.service');
+    const data = await aiService.researchIndustryDemand(domain);
+    await set(cacheKey, data, 900); // 15 min cache for Perplexity data
+    res.status(200).json(buildApiResponse(data, `Industry demand for ${domain} retrieved`));
+  } catch (err) { next(err); }
+};

@@ -1,16 +1,29 @@
 import { Router } from 'express';
-import { getSkillGaps, getIndustryDemand, getPlacementTrendsCtrl, getNationalHeatmapCtrl, getPredictions, getFairness, getFundTargeting } from '../controllers/analytics.controller';
-import { authenticate } from '../middleware/auth.middleware';
+import {
+  getSkillGaps, getIndustryDemand, getPlacementTrendsCtrl,
+  getNationalHeatmapCtrl, getPredictions, getFairness, getFundTargeting,
+  getStudentSkillGaps, getStudentCareerPaths, getDashboard, getIndustryDemandByDomain,
+} from '../controllers/analytics.controller';
+import { protect } from '../middleware/auth.middleware';
 import { requireRole } from '../middleware/role.middleware';
+import { aiLimiter } from '../middleware/rateLimit.middleware';
 
 const router = Router();
 
-router.get('/skill-gaps', authenticate, getSkillGaps);
-router.get('/industry-demand', authenticate, getIndustryDemand);
-router.get('/placement-trends', authenticate, getPlacementTrendsCtrl);
-router.get('/national-heatmap', authenticate, getNationalHeatmapCtrl);
-router.get('/predictions', authenticate, getPredictions);
-router.get('/fairness', authenticate, requireRole('admin', 'government'), getFairness);
-router.get('/fund-targeting', authenticate, requireRole('government', 'admin'), getFundTargeting);
+// Dashboard summary
+router.get('/dashboard', protect, getDashboard);
+// Aggregate analytics
+router.get('/skill-gaps', protect, getSkillGaps);
+router.get('/industry-demand', protect, getIndustryDemand);
+router.get('/industry-demand/:domain', protect, getIndustryDemandByDomain);
+router.get('/placement-trends', protect, getPlacementTrendsCtrl);
+router.get('/national-heatmap', protect, getNationalHeatmapCtrl);
+router.get('/heatmap', protect, getNationalHeatmapCtrl);  // alias
+router.get('/predictions', protect, getPredictions);
+router.get('/fairness', protect, requireRole('admin', 'government'), getFairness);
+router.get('/fund-targeting', protect, requireRole('government', 'admin'), getFundTargeting);
+// Per-student AI analytics
+router.get('/skill-gaps/:studentId', protect, aiLimiter, getStudentSkillGaps);
+router.get('/career-paths/:studentId', protect, aiLimiter, getStudentCareerPaths);
 
 export default router;

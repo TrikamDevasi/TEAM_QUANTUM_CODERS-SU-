@@ -17,9 +17,14 @@ export interface FairnessFlag {
   severity: 'critical' | 'moderate' | 'minor';
 }
 
+/**
+ * AI-generated fairness report.
+ * flags is string[] (plain language from GPT).
+ * For statistical fairness metrics, see FairnessMetricsResult in fairness.service.ts.
+ */
 export interface FairnessReport {
   isFair: boolean;
-  flags: FairnessFlag[];
+  flags: string[];
   recommendations: string[];
 }
 

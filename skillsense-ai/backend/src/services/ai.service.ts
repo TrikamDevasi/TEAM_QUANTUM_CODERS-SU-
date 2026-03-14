@@ -358,6 +358,51 @@ Write a concise 2-3 sentence insight in plain English suitable for a government/
       return '';
     }
   }
+
+  // ── 7. Test Connectivity ──────────────────────────────────────────────────
+  async testConnectivity(): Promise<{
+    openai: { success: boolean; message: string };
+    perplexity: { success: boolean; message: string };
+  }> {
+    const results = {
+      openai: { success: false, message: 'Not tested' },
+      perplexity: { success: false, message: 'Not tested' },
+    };
+
+    // Test OpenAI
+    try {
+      if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.includes('your_')) {
+        results.openai = { success: false, message: 'API Key missing or placeholder' };
+      } else {
+        const r = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: 'Say OK' }],
+          max_tokens: 5,
+        });
+        results.openai = { success: true, message: `Connected! Response: ${r.choices[0].message.content}` };
+      }
+    } catch (err: any) {
+      results.openai = { success: false, message: err.message || 'Unknown error' };
+    }
+
+    // Test Perplexity
+    try {
+      if (!process.env.PERPLEXITY_API_KEY || process.env.PERPLEXITY_API_KEY === 'ppl' || process.env.PERPLEXITY_API_KEY.includes('your_')) {
+        results.perplexity = { success: false, message: 'API Key missing or placeholder' };
+      } else {
+        const r = await perplexity.chat.completions.create({
+          model: 'llama-3.1-sonar-small-128k-online',
+          messages: [{ role: 'user', content: 'Say OK' }],
+          max_tokens: 5,
+        });
+        results.perplexity = { success: true, message: `Connected! Response: ${r.choices[0].message.content}` };
+      }
+    } catch (err: any) {
+      results.perplexity = { success: false, message: err.message || 'Unknown error' };
+    }
+
+    return results;
+  }
 }
 
 // ── Singleton export ──────────────────────────────────────────────────────────

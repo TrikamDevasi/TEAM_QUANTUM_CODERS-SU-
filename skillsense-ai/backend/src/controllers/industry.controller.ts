@@ -5,6 +5,7 @@ import Institution from '../models/Institution.model';
 import { get, set } from '../utils/cache.utils';
 import { anonymiseExport } from '../utils/anonymise.utils';
 import { buildApiResponse } from '../utils/pagination.utils';
+import { aiService } from '../services/ai.service';
 
 export const getTalentPool = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -33,10 +34,9 @@ export const getDemandSignals = async (req: Request, res: Response, next: NextFu
       .limit(10);
 
     // Enrich top 3 unique domains with Perplexity real-time research
-    const { researchIndustryDemand } = await import('../services/ai.service');
     const topDomains = [...new Set(skills.slice(0, 3).map((s) => s.domain))];
     const researchResults = await Promise.allSettled(
-      topDomains.map((domain) => researchIndustryDemand(domain))
+      topDomains.map((domain) => aiService.researchIndustryDemand(domain))
     );
     const researchMap: Record<string, unknown> = {};
     topDomains.forEach((domain, i) => {

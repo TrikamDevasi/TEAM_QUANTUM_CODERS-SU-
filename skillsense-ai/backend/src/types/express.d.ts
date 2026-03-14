@@ -1,10 +1,10 @@
-import 'express';
+import { IUser } from '../models/User.model';
 
-declare module 'express-serve-static-core' {
-  interface Request {
-    user?: {
-      userId: string;
-      role: 'student' | 'institute' | 'industry' | 'government' | 'admin';
-    };
+declare global {
+  namespace Express {
+    interface User extends IUser {}
+    interface Request {
+      user?: User;
+    }
   }
 }

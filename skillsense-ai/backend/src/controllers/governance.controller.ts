@@ -4,6 +4,8 @@ import Student from '../models/Student.model';
 import Institution from '../models/Institution.model';
 import { anonymiseExport } from '../utils/anonymise.utils';
 import { parsePagination, buildPaginatedResponse, buildApiResponse } from '../utils/pagination.utils';
+import { getNationalHeatmap } from '../services/analytics.service';
+import { get, set } from '../utils/cache.utils';
 
 export const getAuditLogs = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -47,5 +49,40 @@ export const getComplianceCheck = async (req: Request, res: Response, next: Next
         institutionVerificationRate: `${institutions.length} verified institutions`,
       },
     }, 'Compliance check complete'));
+  } catch (err) { next(err); }
+};
+
+// ── Governance: National Heatmap ──────────────────────────────────────────────
+export const getNationalHeatmapGov = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await getNationalHeatmap();
+    res.status(200).json(buildApiResponse(data, 'National heatmap data retrieved'));
+  } catch (err) { next(err); }
+};
+
+// ── Governance: Fund Targeting ────────────────────────────────────────────────
+export const getFundTargetingGov = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const cacheKey = 'governance:fund-targeting';
+    const cached = await get<unknown>(cacheKey);
+    if (cached) { res.status(200).json(buildApiResponse(cached, 'Fund targeting data (cached)')); return; }
+
+    const institutions = await Institution.find({ isVerified: true }).lean();
+    const results = await Promise.all(
+      institutions.map(async (inst) => {
+        const studentCount = await Student.countDocuments({ institutionId: inst._id });
+        const placedCount = await Student.countDocuments({ institutionId: inst._id, placementStatus: 'placed' });
+        const placementRate = studentCount ? Math.round((placedCount / studentCount) * 100) : 0;
+        const priorityScore = studentCount * (1 - placementRate / 100);
+        return {
+          institutionId: inst._id, name: inst.name, state: inst.state, type: inst.type,
+          studentCount, placementRate, priorityScore: Math.round(priorityScore),
+          recommendedFunding: priorityScore > 50 ? 'high' : priorityScore > 20 ? 'medium' : 'low',
+        };
+      })
+    );
+    results.sort((a, b) => b.priorityScore - a.priorityScore);
+    await set(cacheKey, results, 600);
+    res.status(200).json(buildApiResponse(results, 'Fund targeting analysis complete'));
   } catch (err) { next(err); }
 };

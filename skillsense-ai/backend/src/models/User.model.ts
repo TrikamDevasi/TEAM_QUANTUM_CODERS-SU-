@@ -5,42 +5,65 @@ import { UserRole } from '../types';
 export interface IUser extends Document {
   name: string;
   email: string;
-  password: string;
+  password?: string;
   role: UserRole;
   avatar?: string;
   phone?: string;
   isVerified: boolean;
   isActive: boolean;
   refreshToken?: string;
+  // OAuth fields
+  googleId?: string;
+  githubId?: string;
+  authProvider: 'local' | 'google' | 'github';
   comparePassword(candidate: string): Promise<boolean>;
 }
 
 const UserSchema = new Schema<IUser>(
   {
-    name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true, select: false },
-    role: {
-      type: String,
-      enum: ['student', 'institute', 'industry', 'government', 'admin'],
-      required: true,
+    name: { type: String, required: [true, 'Name is required'], trim: true },
+    email: { type: String, required: [true, 'Email is required'], unique: true, lowercase: true, trim: true },
+    password: { type: String, select: false, minlength: [8, 'Password must be at least 8 characters'] },
+    role: { 
+      type: String, 
+      enum: ['student', 'institute', 'industry', 'government', 'admin'], 
+      default: 'student' 
     },
-    avatar: { type: String },
+    avatar: { type: String, default: '' },
     phone: { type: String },
     isVerified: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
     refreshToken: { type: String, select: false },
+    // OAuth
+    googleId: { type: String, sparse: true, index: true },
+    githubId: { type: String, sparse: true, index: true },
+    authProvider: { type: String, enum: ['local', 'google', 'github'], default: 'local' },
   },
   { timestamps: true }
 );
 
+// Hash password before save
 UserSchema.pre<IUser>('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 12);
-  next();
+  if (!this.isModified('password') || !this.password) return next();
+  try {
+    const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (err: any) {
+    next(err);
+  }
 });
 
+// Remove password from JSON output
+UserSchema.methods.toJSON = function () {
+  const obj = this.toObject();
+  delete obj.password;
+  return obj;
+};
+
+// Compare password method
 UserSchema.methods.comparePassword = async function (candidate: string): Promise<boolean> {
+  if (!this.password) return false;
   return bcrypt.compare(candidate, this.password);
 };
 

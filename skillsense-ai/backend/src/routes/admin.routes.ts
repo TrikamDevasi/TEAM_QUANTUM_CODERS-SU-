@@ -4,14 +4,14 @@ import {
   listInstitutes, createInstitute, verifyInstitute,
   getSystemReports, getFairnessDashboard,
 } from '../controllers/admin.controller';
-import { authenticate } from '../middleware/auth.middleware';
+import { protect } from '../middleware/auth.middleware';
 import { requireRole } from '../middleware/role.middleware';
 import { auditLog } from '../middleware/audit.middleware';
 
 const router = Router();
 
 // All admin routes require admin role
-router.use(authenticate, requireRole('admin'));
+router.use(protect, requireRole('admin'));
 
 // Users CRUD
 router.get('/users', listUsers);
