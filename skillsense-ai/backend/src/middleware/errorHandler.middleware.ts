@@ -1,0 +1,69 @@
+import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import { JsonWebTokenError } from 'jsonwebtoken';
+import { Error as MongooseError } from 'mongoose';
+import { MongoServerError } from 'mongodb';
+import { ZodError } from 'zod';
+import logger from '../utils/logger';
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const errorHandler: ErrorRequestHandler = (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  logger.error('Unhandled error:', err);
+
+  // Duplicate key (MongoDB 11000)
+  if (err instanceof MongoServerError && err.code === 11000) {
+    const field = Object.keys(err.keyPattern ?? {})[0] ?? 'field';
+    res.status(400).json({
+      success: false,
+      data: null,
+      message: `Duplicate value for ${field}. Please use a different value.`,
+    });
+    return;
+  }
+
+  // JWT errors
+  if (err instanceof JsonWebTokenError) {
+    res.status(401).json({
+      success: false,
+      data: null,
+      message: 'Invalid or expired token.',
+    });
+    return;
+  }
+
+  // Mongoose ValidationError
+  if (err instanceof MongooseError.ValidationError) {
+    const errors = Object.values(err.errors).map((e) => ({
+      field: e.path,
+      message: e.message,
+    }));
+    res.status(400).json({
+      success: false,
+      data: null,
+      message: 'Validation failed',
+      error: JSON.stringify(errors),
+    });
+    return;
+  }
+
+  // Zod ValidationError
+  if (err instanceof ZodError) {
+    const errors = err.errors.map((e) => ({ field: e.path.join('.'), message: e.message }));
+    res.status(400).json({
+      success: false,
+      data: null,
+      message: 'Request validation failed',
+      error: JSON.stringify(errors),
+    });
+    return;
+  }
+
+  // Default 500
+  const message = err instanceof Error ? err.message : 'Internal server error';
+  res.status(500).json({
+    success: false,
+    data: null,
+    message,
+  });
+};
+
+export default errorHandler;
