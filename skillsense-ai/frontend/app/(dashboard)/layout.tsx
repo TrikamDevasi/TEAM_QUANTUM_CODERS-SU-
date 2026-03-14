@@ -13,17 +13,29 @@ const NAV = [
             { label: 'Overview', href: '/student' },
             { label: 'Skill Passport', href: '/student/passport' },
             { label: 'AI Analyzer', href: '/student/analyzer' },
+            { label: 'My Submissions', href: '/student/submissions' },
             { label: 'Assessments', href: '/student/assessments' },
             { label: 'Career Path', href: '/student/career' },
+            { label: 'Latest News', href: '/student/news' },
         ],
     },
     {
         group: 'Institute', accent: '#a78bfa', routes: [
             { label: 'Overview', href: '/institute' },
             { label: 'Students', href: '/institute/students' },
+            { label: 'Evaluations', href: '/institute/evaluations' },
             { label: 'Placements', href: '/institute/placement' },
             { label: 'Program ROI', href: '/institute/roi' },
             { label: 'Upload Data', href: '/institute/upload' },
+            { label: 'Latest News', href: '/institute/news' },
+        ],
+    },
+    {
+        group: 'Employer', accent: '#06b6d4', routes: [
+            { label: 'Overview', href: '/employer' },
+            { label: 'Feedback', href: '/employer/feedback' },
+            { label: 'Skill Validation', href: '/employer/validations' },
+            { label: 'Placements', href: '/employer/placements' },
         ],
     },
     {
@@ -32,6 +44,7 @@ const NAV = [
             { label: 'Talent Pool', href: '/industry/talent' },
             { label: 'Demand Signals', href: '/industry/demand' },
             { label: 'Campus Connect', href: '/industry/campus' },
+            { label: 'Latest News', href: '/industry/news' },
         ],
     },
     {
@@ -40,6 +53,7 @@ const NAV = [
             { label: 'Region Heatmap', href: '/government/heatmap' },
             { label: 'Fund Targeting', href: '/government/fund-targeting' },
             { label: 'Compliance', href: '/government/compliance' },
+            { label: 'Latest News', href: '/government/news' },
         ],
     },
     {
@@ -57,6 +71,7 @@ const NAV = [
 const ROLE_GROUP_MAP: Record<string, string> = {
     student: 'Student',
     institute: 'Institute',
+    employer: 'Employer',
     industry: 'Industry',
     government: 'Government',
     admin: 'Admin',
