@@ -1,12 +1,23 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import { motion } from 'framer-motion';
 import {
-    RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
-    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+    Radar, PolarGrid, PolarAngleAxis, Area, XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
 import { sampleStudents } from '@/data/sampleStudents';
 import { downloadPageAsPDF } from '@/utils/downloadPDF';
+import { LiveBadge } from '@/components/ui/LiveBadge';
+import { Skeleton } from '@/components/ui/skeleton';
+import confetti from 'canvas-confetti';
+import { Download, Share2 } from 'lucide-react';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
+
+// Dynamic imports for top-level heavy chart containers
+const RadarChart = dynamic(() => import('recharts').then(mod => mod.RadarChart), { ssr: false });
+const ResponsiveContainer = dynamic(() => import('recharts').then(mod => mod.ResponsiveContainer), { ssr: false });
+const AreaChart = dynamic(() => import('recharts').then(mod => mod.AreaChart), { ssr: false });
 
 const S = sampleStudents[0];
 const GOLD = '#D4A843';
@@ -71,8 +82,20 @@ const Tip = ({ active, payload, label }: CustomTooltipProps) => {
 export default function StudentPage() {
     const [active, setActive] = useState<string>('overview');
     const [userName, setUserName] = useState(S.name);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Celebrate user achievement on entering
+        confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: [GOLD, GOLD_L, '#ffffff']
+        });
+
+        // Simulate initial load for skeletons
+        const timer = setTimeout(() => setLoading(false), 1500);
+        
         try {
             const stored = localStorage.getItem('ss_user');
             if (stored) {
@@ -80,17 +103,23 @@ export default function StudentPage() {
                 if (parsed.name) setUserName(parsed.name);
             }
         } catch { }
+
+        return () => clearTimeout(timer);
     }, []);
 
     return (
-        <div>
-            <div style={{ marginBottom: 24 }}>
-                <h1 className="font-display" style={{ fontSize: 26, fontWeight: 800, color: '#fff' }}>
-                    Student Dashboard
-                </h1>
-                <p style={{ color: '#64748b', fontSize: 14, marginTop: 4 }}>
-                    Welcome back, {userName}
-                </p>
+        <ErrorBoundary>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                    <h1 className="font-display" style={{ fontSize: 26, fontWeight: 800, color: '#fff' }}>
+                        Student Dashboard
+                    </h1>
+                    <p style={{ color: '#64748b', fontSize: 14, marginTop: 4 }}>
+                        Welcome back, {userName}
+                    </p>
+                </div>
+                <LiveBadge label="NETWORK ACTIVE" />
             </div>
 
             {/* Tabs */}
@@ -112,24 +141,67 @@ export default function StudentPage() {
             {/* ── OVERVIEW ── */}
             {active === 'overview' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                    {/* KPI cards */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-                        {[
-                            { label: 'Overall Skill Score', value: `${S.overallScore}/100`, color: GOLD },
-                            { label: 'Placement Status', value: S.placementStatus === 'placed' ? 'Placed' : 'Seeking', color: '#22c55e' },
-                            { label: 'Skills Assessed', value: `${S.skills.length}`, color: AMBER },
-                            { label: 'NSQF Level', value: `Level ${S.nsqfLevel}`, color: ORANGE },
-                        ].map((stat, i) => (
-                            <div key={i} className="stat-card">
-                                <div style={{ width: 4, height: 28, borderRadius: 2, background: stat.color, marginBottom: 14 }} />
-                                <div className="font-display" style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>{stat.value}</div>
-                                <div style={{ fontSize: 12, color: '#64748b', marginTop: 5 }}>{stat.label}</div>
+                        {/* KPI cards - Responsive grid */}
+                        <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                            gap: 14 
+                        }}>
+                            {[
+                                { label: 'Overall Skill Score', value: `${S.overallScore}/100`, color: GOLD },
+                                { label: 'Placement Status', value: S.placementStatus === 'placed' ? 'Placed' : 'Seeking', color: '#22c55e' },
+                                { label: 'Skills Assessed', value: `${S.skills.length}`, color: AMBER },
+                                { label: 'NSQF Level', value: `Level ${S.nsqfLevel}`, color: ORANGE },
+                            ].map((stat, i) => (
+                                <motion.div 
+                                    key={i} 
+                                    className="stat-card"
+                                    whileHover={{ scale: 1.02, backgroundColor: 'rgba(212, 168, 67, 0.08)' }}
+                                    whileTap={{ scale: 0.98 }}
+                                >
+                                    {loading ? (
+                                        <>
+                                            <Skeleton width={32} height={20} style={{ marginBottom: 12 }} />
+                                            <Skeleton width="60%" height={28} style={{ marginBottom: 8 }} />
+                                            <Skeleton width="40%" height={14} />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div style={{ width: 4, height: 28, borderRadius: 2, background: stat.color, marginBottom: 14 }} />
+                                            <div className="font-display" style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>{stat.value}</div>
+                                            <div style={{ fontSize: 12, color: '#64748b', marginTop: 5 }}>{stat.label}</div>
+                                        <div style={{ display: 'flex', gap: 10 }}>
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => downloadPageAsPDF('student-report')}
+                                    className="btn-primary"
+                                    style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                                >
+                                    <Download size={16} />
+                                    Export Report
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="btn-ghost"
+                                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px' }}
+                                >
+                                    <Share2 size={16} />
+                                </motion.button>
                             </div>
-                        ))}
-                    </div>
+                                        </>
+                                    )}
+                                </motion.div>
+                            ))}
+                        </div>
 
-                    {/* Charts */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+                    {/* Charts - Responsive */}
+                    <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                        gap: 18 
+                    }}>
                         <div className="stat-card">
                             <h3 className="font-display" style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 16 }}>
                                 Skill Radar
@@ -351,8 +423,9 @@ export default function StudentPage() {
                     ))}
                 </div>
             )}
-        </div>
-    );
+                </div>
+            </ErrorBoundary>
+        );
 }
 
 function AIAnalyzerTab({ program }: { program: string }) {

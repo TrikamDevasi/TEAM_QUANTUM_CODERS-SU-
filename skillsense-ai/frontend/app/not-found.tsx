@@ -1,40 +1,39 @@
-import Link from 'next/link';
+'use client';
 
-export default function NotFound() {
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+
+export default function Custom404() {
     return (
-        <div
-            style={{
-                minHeight: '100vh',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#08060f',
-                color: '#fff',
-                fontFamily: 'Inter, sans-serif',
-                gap: 12,
-            }}
-        >
-            <p style={{ fontSize: 64, fontWeight: 900, color: '#D4A843', lineHeight: 1 }}>404</p>
-            <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Page not found</h2>
-            <p style={{ color: '#A0A0A0', fontSize: 14, margin: 0 }}>
-                The page you&apos;re looking for doesn&apos;t exist.
-            </p>
-            <Link
-                href="/student"
-                style={{
-                    marginTop: 12,
-                    padding: '10px 24px',
-                    borderRadius: 8,
-                    background: 'linear-gradient(135deg, #D4A843, #8b6512)',
-                    color: '#1a0f00',
-                    fontSize: 14,
-                    fontWeight: 700,
-                    textDecoration: 'none',
-                }}
+        <div style={{ 
+            height: '100vh', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            background: '#08060f',
+            color: '#fff',
+            fontFamily: 'Space Grotesk, sans-serif'
+        }}>
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                style={{ textAlign: 'center' }}
             >
-                Go to Dashboard
-            </Link>
+                <h1 style={{ fontSize: '120px', fontWeight: 900, marginBottom: 0, color: 'rgba(212,168,67,0.1)' }}>
+                    404
+                </h1>
+                <div style={{ marginTop: -60 }}>
+                    <h2 style={{ fontSize: '32px', marginBottom: 16 }}>Dimension Not Found</h2>
+                    <p style={{ color: '#94a3b8', maxWidth: 400, margin: '0 auto 32px' }}>
+                        The page you are looking for has been archived in the AI core or never existed in this timeline.
+                    </p>
+                    <Link href="/student" className="btn-primary" style={{ textDecoration: 'none' }}>
+                        Return to Hub
+                    </Link>
+                </div>
+            </motion.div>
         </div>
     );
 }

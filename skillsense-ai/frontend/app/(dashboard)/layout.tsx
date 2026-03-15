@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -123,6 +125,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             window.removeEventListener('storage', handleAvatarUpdate);
             clearInterval(interval);
         };
+    }, []);
+
+    // Auto-collapse for mobile screens
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 768) {
+                setCollapsed(true);
+            } else {
+                setCollapsed(false);
+            }
+        };
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     // Close dropdown on outside click
@@ -335,7 +351,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 }}
                             >
                                 {userAvatar ? (
-                                    <img src={userAvatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <Image src={userAvatar} alt="Avatar" width={30} height={30} style={{ objectFit: 'cover' }} />
                                 ) : (
                                     initials
                                 )}
