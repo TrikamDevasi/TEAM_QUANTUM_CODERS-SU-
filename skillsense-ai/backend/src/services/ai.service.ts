@@ -412,16 +412,19 @@ Write a concise 2-3 sentence insight in plain English suitable for a government/
   // ── 8. Chat with Multi-tier Fallback (Groq -> OpenAI -> Perplexity) ──────────────────
   async chatWithFallback(
     messages: OpenAI.Chat.ChatCompletionMessageParam[],
-    options: { temperature?: number; max_tokens?: number } = {}
+    options: { temperature?: number; max_tokens?: number; response_format?: { type: 'json_object' } } = {}
   ): Promise<string> {
+    const groqOptions: any = {
+      model: 'llama3-8b-8192',
+      messages: messages as any,
+      max_tokens: options.max_tokens ?? 1024,
+      temperature: options.temperature ?? 0.7,
+    };
+    if (options.response_format) groqOptions.response_format = options.response_format;
+
     // 1. Try Groq (Primary)
     try {
-      const response = await groq.chat.completions.create({
-        model: 'llama3-8b-8192',
-        messages: messages as any, // Cast due to minor SDK diffs if any
-        max_tokens: options.max_tokens ?? 1024,
-        temperature: options.temperature ?? 0.7,
-      });
+      const response = await groq.chat.completions.create(groqOptions);
       return response.choices[0]?.message?.content?.trim() ?? '';
     } catch (err: any) {
       logger.warn('Groq failed, falling back to OpenAI...', err.message);
@@ -434,6 +437,7 @@ Write a concise 2-3 sentence insight in plain English suitable for a government/
         messages,
         temperature: options.temperature ?? 0.7,
         max_tokens: options.max_tokens ?? 500,
+        response_format: options.response_format,
       });
       return completion.choices[0]?.message?.content?.trim() ?? '';
     } catch (err: any) {
@@ -447,7 +451,8 @@ Write a concise 2-3 sentence insight in plain English suitable for a government/
             messages,
             temperature: options.temperature ?? 0.7,
             max_tokens: options.max_tokens ?? 500,
-          });
+            response_format: options.response_format,
+          } as any);
           return completion.choices[0]?.message?.content?.trim() ?? '';
         } catch (perr) {
           logger.error('All AI providers (Groq, OpenAI, Perplexity) failed:', perr);
