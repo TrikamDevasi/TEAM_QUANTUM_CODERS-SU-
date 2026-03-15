@@ -78,7 +78,7 @@ const FEATURES = [
 ];
 
 const STEPS = [
-    { num: '01', icon: '📝', title: 'Register', desc: 'Create your free account in under 2 minutes with Google or email.' },
+    { num: '01', icon: '📝', title: 'Register', desc: 'Create your free account in under 2 minutes with your email.' },
     { num: '02', icon: '⚡', title: 'Assess', desc: 'Upload your profile — our AI analyses 50+ skill dimensions instantly.' },
     { num: '03', icon: '📈', title: 'Learn', desc: 'Follow a personalised roadmap from curated courses and mentors.' },
     { num: '04', icon: '💼', title: 'Get Hired', desc: 'Apply to matched roles with your verified Skill Passport.' },

@@ -47,6 +47,8 @@ router.get('/stats', getPublicStats);
 export { refreshTokens }; // keep named export available if other modules import it
 
 // ── Google OAuth ───────────────────────────────────────────────────────────────
+// TODO: re-enable Google Auth
+/*
 router.get('/google',
   passport.authenticate('google', { scope: ['profile', 'email'], session: false })
 );
@@ -68,6 +70,7 @@ router.get('/google/callback',
     );
   }
 );
+*/
 
 // ── GitHub OAuth ───────────────────────────────────────────────────────────────
 router.get('/github',

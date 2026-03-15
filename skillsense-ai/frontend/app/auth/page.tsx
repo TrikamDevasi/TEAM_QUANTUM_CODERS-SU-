@@ -291,6 +291,8 @@ export default function AuthPage() {
 
                     {/* Social */}
                     <div className="auth-socials">
+                        {/* TODO: re-enable Google Auth */}
+                        {/*
                         <button
                             type="button"
                             className="auth-social-btn"
@@ -304,6 +306,7 @@ export default function AuthPage() {
                             </svg>
                             Google
                         </button>
+                        */}
                         <button
                             type="button"
                             className="auth-social-btn"

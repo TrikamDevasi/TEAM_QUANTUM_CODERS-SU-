@@ -27,6 +27,8 @@ passport.use(
 );
 
 // ── Google OAuth Strategy ─────────────────────────────────────────────────────
+// TODO: re-enable Google Auth
+/*
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(
     new GoogleStrategy(
@@ -78,6 +80,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 } else {
   logger.warn('Google OAuth disabled — GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not set');
 }
+*/
 
 // ── GitHub OAuth Strategy ─────────────────────────────────────────────────────
 if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
