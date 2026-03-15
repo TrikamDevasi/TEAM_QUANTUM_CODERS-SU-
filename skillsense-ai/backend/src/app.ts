@@ -47,8 +47,8 @@ app.use(cors({
   optionsSuccessStatus: 204,
 }));
 
-// Handle OPTIONS preflight for ALL routes
-app.options('*', cors());
+// ✅ CORRECT wildcard syntax for path-to-regexp v8
+app.options('/(.*)', cors());
 
 
 // ── Body Parsing ───────────────────────────────────────────────────────────
