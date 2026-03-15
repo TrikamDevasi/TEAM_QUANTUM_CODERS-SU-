@@ -1,6 +1,7 @@
 // backend/src/services/ai.service.ts
 
 import OpenAI from 'openai';
+import Groq from 'groq-sdk';
 import logger from '../utils/logger';
 
 // ── Clients ───────────────────────────────────────────────────────────────────
@@ -12,6 +13,10 @@ const openai = new OpenAI({
 const perplexity = new OpenAI({
   apiKey: process.env.PERPLEXITY_API_KEY,
   baseURL: 'https://api.perplexity.ai',
+});
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
 });
 
 // ── Interfaces ────────────────────────────────────────────────────────────────
@@ -404,13 +409,26 @@ Write a concise 2-3 sentence insight in plain English suitable for a government/
     return results;
   }
 
-  // ── 8. Chat with Fallback (OpenAI -> Perplexity) ──────────────────────────
+  // ── 8. Chat with Multi-tier Fallback (Groq -> OpenAI -> Perplexity) ──────────────────
   async chatWithFallback(
     messages: OpenAI.Chat.ChatCompletionMessageParam[],
     options: { temperature?: number; max_tokens?: number } = {}
   ): Promise<string> {
+    // 1. Try Groq (Primary)
     try {
-      // 1. Try OpenAI first
+      const response = await groq.chat.completions.create({
+        model: 'llama3-8b-8192',
+        messages: messages as any, // Cast due to minor SDK diffs if any
+        max_tokens: options.max_tokens ?? 1024,
+        temperature: options.temperature ?? 0.7,
+      });
+      return response.choices[0]?.message?.content?.trim() ?? '';
+    } catch (err: any) {
+      logger.warn('Groq failed, falling back to OpenAI...', err.message);
+    }
+
+    // 2. Fallback to OpenAI
+    try {
       const completion = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages,
@@ -422,7 +440,7 @@ Write a concise 2-3 sentence insight in plain English suitable for a government/
       const isQuotaError = err.status === 429 || err.code === 'insufficient_quota';
       
       if (isQuotaError) {
-        logger.warn('OpenAI quota exceeded/rate limited. Falling back to Perplexity...');
+        logger.warn('OpenAI quota exceeded. Falling back to Perplexity...');
         try {
           const completion = await perplexity.chat.completions.create({
             model: 'llama-3.1-sonar-small-128k-online',
@@ -432,12 +450,12 @@ Write a concise 2-3 sentence insight in plain English suitable for a government/
           });
           return completion.choices[0]?.message?.content?.trim() ?? '';
         } catch (perr) {
-          logger.error('Perplexity fallback also failed:', perr);
+          logger.error('All AI providers (Groq, OpenAI, Perplexity) failed:', perr);
           throw perr;
         }
       }
       
-      logger.error('OpenAI chat error (non-quota):', err);
+      logger.error('OpenAI non-quota error:', err.message);
       throw err;
     }
   }
