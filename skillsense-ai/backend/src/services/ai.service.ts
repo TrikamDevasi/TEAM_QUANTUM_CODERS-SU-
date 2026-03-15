@@ -403,6 +403,44 @@ Write a concise 2-3 sentence insight in plain English suitable for a government/
 
     return results;
   }
+
+  // ── 8. Chat with Fallback (OpenAI -> Perplexity) ──────────────────────────
+  async chatWithFallback(
+    messages: OpenAI.Chat.ChatCompletionMessageParam[],
+    options: { temperature?: number; max_tokens?: number } = {}
+  ): Promise<string> {
+    try {
+      // 1. Try OpenAI first
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages,
+        temperature: options.temperature ?? 0.7,
+        max_tokens: options.max_tokens ?? 500,
+      });
+      return completion.choices[0]?.message?.content?.trim() ?? '';
+    } catch (err: any) {
+      const isQuotaError = err.status === 429 || err.code === 'insufficient_quota';
+      
+      if (isQuotaError) {
+        logger.warn('OpenAI quota exceeded/rate limited. Falling back to Perplexity...');
+        try {
+          const completion = await perplexity.chat.completions.create({
+            model: 'llama-3.1-sonar-small-128k-online',
+            messages,
+            temperature: options.temperature ?? 0.7,
+            max_tokens: options.max_tokens ?? 500,
+          });
+          return completion.choices[0]?.message?.content?.trim() ?? '';
+        } catch (perr) {
+          logger.error('Perplexity fallback also failed:', perr);
+          throw perr;
+        }
+      }
+      
+      logger.error('OpenAI chat error (non-quota):', err);
+      throw err;
+    }
+  }
 }
 
 // ── Singleton export ──────────────────────────────────────────────────────────

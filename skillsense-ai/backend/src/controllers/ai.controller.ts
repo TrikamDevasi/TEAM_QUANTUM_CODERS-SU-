@@ -71,14 +71,10 @@ Context about this user: ${context || 'Student on SkillSense AI platform'}`;
       { role: 'user', content: message },
     ];
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages,
+    const reply = await aiService.chatWithFallback(messages, {
       max_tokens: 300,
       temperature: 0.7,
     });
-
-    const reply = completion.choices[0]?.message?.content?.trim() ?? 'I could not generate a response. Please try again.';
 
     // Generate 3 contextual follow-up suggestions
     const suggestCompletion = await openai.chat.completions.create({
