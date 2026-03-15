@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
+import IndustryPlans from '../components/IndustryPlans';
+import IndustryModal from '../components/IndustryModal';
 
 /* ── helpers ── */
 function useInView(ref: React.RefObject<HTMLElement | null>) {
@@ -92,7 +94,7 @@ function Navbar() {
                     <span className="font-display" style={{ fontWeight: 800, fontSize: 15, color: '#fff' }}>SkillSense AI</span>
                 </div>
                 <div style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
-                    {['Features', 'How It Works', 'Impact', 'Dashboards'].map(l => (
+                    {['Features', 'How It Works', 'Impact', 'Pricing', 'Dashboards'].map(l => (
                         <a key={l} href={`#${l.toLowerCase().replace(/\s/g, '-')}`} style={{ color: '#64748b', fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'color 0.2s' }}
                             onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
                             onMouseLeave={e => (e.currentTarget.style.color = '#64748b')}>{l}</a>
@@ -109,6 +111,14 @@ function Navbar() {
 
 /* ── Page ── */
 export default function LandingPage() {
+    const [modalOpen, setModalOpen] = useState(false);
+    const [selectedPlan, setSelectedPlan] = useState('Professional');
+
+    const handleSelectPlan = (plan: string) => {
+        setSelectedPlan(plan);
+        setModalOpen(true);
+    };
+
     return (
         <div className="grid-bg" style={{ minHeight: '100vh', overflowX: 'hidden' }}>
             <Navbar />
@@ -148,7 +158,7 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* Problem */}
+            {/* Problem + Features */}
             <section style={{ padding: '100px 24px' }} id="features">
                 <div style={{ maxWidth: 1100, margin: '0 auto' }}>
                     <FadeIn style={{ textAlign: 'center', marginBottom: 64 }}>
@@ -156,7 +166,7 @@ export default function LandingPage() {
                             <span style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.05em' }}>The Problem</span>
                         </div>
                         <h2 className="font-display" style={{ fontSize: 40, fontWeight: 800, color: '#fff', marginBottom: 14 }}>
-                            Certificates Don't Tell the <span className="gradient-text">Whole Story</span>
+                            Certificates Don&apos;t Tell the <span className="gradient-text">Whole Story</span>
                         </h2>
                         <p style={{ color: '#64748b', fontSize: 16, maxWidth: 520, margin: '0 auto' }}>The global skills gap costs economies $8.5 trillion annually. Traditional credentials fail to capture real competencies employers need.</p>
                     </FadeIn>
@@ -276,6 +286,12 @@ export default function LandingPage() {
                     </div>
                 </div>
             </section>
+
+            {/* ── Industry Plans (Pricing) ── */}
+            <IndustryPlans onSelectPlan={handleSelectPlan} />
+
+            {/* ── Industry Modal ── */}
+            <IndustryModal isOpen={modalOpen} onClose={() => setModalOpen(false)} selectedPlan={selectedPlan} />
 
             {/* Dashboards */}
             <section style={{ padding: '100px 24px', background: 'rgba(212,168,67,0.015)' }} id="dashboards">

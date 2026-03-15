@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import './auth.css';
 
 /* ── SVG Icons for each role ─────────────────────────────── */
-const RoleIcons: Record<string, JSX.Element> = {
+const RoleIcons: Record<string, React.ReactNode> = {
     student: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c0 1 2 3 6 3s6-2 6-3v-5" />
