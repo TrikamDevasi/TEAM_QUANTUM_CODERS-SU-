@@ -6,6 +6,8 @@ import { Strategy as JwtStrategy, ExtractJwt, StrategyOptions } from 'passport-j
 import User from '../models/User.model';
 import logger from '../utils/logger';
 
+console.log('[Passport] GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID?.slice(0, 20));
+
 // ── JWT Strategy ──────────────────────────────────────────────────────────────
 const jwtOptions: StrategyOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -29,9 +31,9 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(
     new GoogleStrategy(
       {
-        clientID: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/v1/auth/google/callback',
+        clientID: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+        callbackURL: process.env.GOOGLE_CALLBACK_URL!,
       },
       async (_accessToken, _refreshToken, profile, done) => {
         try {

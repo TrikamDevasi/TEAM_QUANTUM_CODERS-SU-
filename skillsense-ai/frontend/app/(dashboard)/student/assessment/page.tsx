@@ -3,6 +3,10 @@
 import { useState } from 'react';
 import api from '../../../../lib/api';
 import Link from 'next/link';
+import { useAuth } from '@/hooks/useAuth';
+import { useApi } from '@/hooks/useApi';
+import { AssessmentHistory } from '@/types/api';
+import toast from 'react-hot-toast';
 
 const GOLD   = '#D4A843';
 const AMBER  = '#F59E0B';
@@ -37,6 +41,9 @@ interface EvalResult {
 }
 
 export default function AssessmentPage() {
+    const { user } = useAuth();
+    const { data: history, refetch: refetchHistory } = useApi<AssessmentHistory[]>('/assessments/history');
+    
     const [phase, setPhase]       = useState<'select' | 'quiz' | 'result'>('select');
     const [topic, setTopic]       = useState('');
     const [level, setLevel]       = useState('Intermediate');
@@ -85,10 +92,23 @@ export default function AssessmentPage() {
             setLoading(true);
             try {
                 const { data } = await api.post('/ai/assess-skill/evaluate', { topic, answers });
-                setResult(data.data);
+                const evalResult: EvalResult = data.data;
+                setResult(evalResult);
+                
+                // Save to database
+                await api.post('/assessments/submit', {
+                    category: topic,
+                    score: evalResult.score,
+                    totalQuestions: evalResult.total,
+                    aiAnalysis: evalResult.improvementPlan
+                });
+                
+                toast.success('Assessment saved to your profile');
+                refetchHistory();
                 setPhase('result');
-            } catch {
+            } catch (err: any) {
                 setError('Evaluation failed. Please try again.');
+                toast.error('Failed to save assessment');
             } finally {
                 setLoading(false);
             }
@@ -142,6 +162,24 @@ export default function AssessmentPage() {
             }}>
                 {loading ? '⏳ Generating questions...' : '🚀 Start Assessment'}
             </button>
+
+            {/* History segment */}
+            {history && history.length > 0 && (
+                <div style={{ marginTop: 40, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 24 }}>
+                    <h3 style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 16 }}>Your Recent Assessments</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+                        {history.map(h => (
+                            <div key={h._id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{h.category}</div>
+                                    <div style={{ fontSize: 11, color: '#64748b' }}>{new Date(h.completedAt).toLocaleDateString()}</div>
+                                </div>
+                                <div style={{ fontSize: 16, fontWeight: 900, color: GOLD }}>{Math.round((h.score / h.totalQuestions) * 100)}%</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 

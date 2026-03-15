@@ -42,3 +42,16 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
     });
   }
 };
+
+// Grant access to specific roles
+export const authorize = (...roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: `User role ${req.user?.role || 'unknown'} is not authorized to access this route`,
+      });
+    }
+    next();
+  };
+};

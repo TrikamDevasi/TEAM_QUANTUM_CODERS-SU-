@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../../../lib/api';
+import { useAuth } from '@/hooks/useAuth';
+import toast from 'react-hot-toast';
 
 const GOLD   = '#D4A843';
 const AMBER  = '#F59E0B';
@@ -25,6 +27,7 @@ interface Career {
 }
 
 export default function CareerPage() {
+    const { user, isLoading } = useAuth();
     const [step, setStep]         = useState<1 | 2 | 3>(1);
     const [skills, setSkills]     = useState<string[]>([]);
     const [interests, setInterests] = useState<string[]>([]);
@@ -33,6 +36,8 @@ export default function CareerPage() {
     const [loading, setLoading]   = useState(false);
     const [error, setError]       = useState<string | null>(null);
     const [expanded, setExpanded] = useState<number | null>(0);
+
+    if (isLoading) return <div style={{ padding: 40, color: '#64748b' }}>Loading...</div>;
 
     function toggleSkill(s: string) { setSkills(p => p.includes(s) ? p.filter(x => x !== s) : [...p, s].slice(0, 8)); }
     function toggleInterest(i: string) { setInterests(p => p.includes(i) ? p.filter(x => x !== i) : [...p, i].slice(0, 5)); }

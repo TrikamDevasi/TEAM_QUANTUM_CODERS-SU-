@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useRef, useState, useEffect, useCallback } from 'react';
+import IndustryPlans from '@/components/IndustryPlans';
 
 /* ─────────────────────────── helpers ───────────────────────────────────── */
 
@@ -60,9 +61,9 @@ const BG = '#050a14';
 
 /* ─────────────────────────── data ──────────────────────────────────────── */
 
-const STATS_ANIM = [
-    { target: 10000, suffix: '+', label: 'Students Enrolled' },
-    { target: 500, suffix: '+', label: 'Courses Available' },
+const DEFAULT_STATS = [
+    { target: 1450, suffix: '+', label: 'Students Enrolled' },
+    { target: 542, suffix: '+', label: 'Courses Available' },
     { target: 200, suffix: '+', label: 'Industry Partners' },
     { target: 94, suffix: '%', label: 'Prediction Accuracy' },
 ];
@@ -270,6 +271,25 @@ function Stars({ count }: { count: number }) {
 /* ─────────────────────────── Page ──────────────────────────────────────── */
 
 export default function LandingPage() {
+    const [stats, setStats] = useState(DEFAULT_STATS);
+
+    useEffect(() => {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/auth/stats`)
+            .then(res => res.json())
+            .then(res => {
+                if (res.success && res.data) {
+                    const { totalUsers, coursesCount, partnersCount, accuracy } = res.data;
+                    setStats([
+                        { target: totalUsers, suffix: '+', label: 'Students Enrolled' },
+                        { target: coursesCount, suffix: '+', label: 'Courses Available' },
+                        { target: partnersCount, suffix: '+', label: 'Industry Partners' },
+                        { target: accuracy, suffix: '%', label: 'Prediction Accuracy' },
+                    ]);
+                }
+            })
+            .catch(err => console.error('Error fetching stats:', err));
+    }, []);
+
     return (
         <div style={{ minHeight: '100vh', overflowX: 'hidden', background: BG, fontFamily: 'Inter, sans-serif' }}>
             <Navbar />
@@ -355,7 +375,7 @@ export default function LandingPage() {
 
                     {/* Animated Stats */}
                     <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, maxWidth: 640, margin: '0 auto' }}>
-                        {STATS_ANIM.map((s, i) => (
+                        {stats.map((s, i) => (
                             <FadeIn key={i} delay={i * 0.1}>
                                 <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '16px 10px', textAlign: 'center', backdropFilter: 'blur(8px)' }}>
                                     <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'Space Grotesk, sans-serif', color: GOLD }}>
@@ -522,6 +542,8 @@ export default function LandingPage() {
                     </div>
                 </div>
             </section>
+
+            <IndustryPlans />
 
             {/* ── TESTIMONIALS ─────────────────────────────────────────────── */}
             <section id="testimonials" className="section-pad" style={{ padding: '100px 24px', background: 'rgba(255,255,255,0.015)' }}>

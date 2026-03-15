@@ -2,6 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import api from '../lib/api';
+import { useAuth } from '@/hooks/useAuth';
+import { ChatMessage } from '@/types/api';
+import toast from 'react-hot-toast';
 
 /* ── Types ───────────────────────────────────────────── */
 interface Message {
@@ -28,8 +31,8 @@ function TypingDots() {
     );
 }
 
-/* ── Main Widget ─────────────────────────────────────── */
 export default function AIChatWidget() {
+    const { user } = useAuth();
     const [open, setOpen]       = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -44,6 +47,22 @@ export default function AIChatWidget() {
     const [error, setError]     = useState<string | null>(null);
     const bottomRef             = useRef<HTMLDivElement>(null);
     const inputRef              = useRef<HTMLInputElement>(null);
+
+    // Fetch history
+    useEffect(() => {
+        if (user) {
+            api.get('/ai/history').then(({ data }) => {
+                if (data.success && data.data?.length > 0) {
+                    const mapped: Message[] = data.data.map((m: any, i: number) => ({
+                        id: `hist_${i}`,
+                        role: m.role,
+                        content: m.content
+                    }));
+                    setMessages(prev => [prev[0], ...mapped]);
+                }
+            }).catch(() => {});
+        }
+    }, [user]);
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -161,7 +180,13 @@ export default function AIChatWidget() {
                                 <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e' }} /> Online · GPT-4o-mini
                             </div>
                         </div>
-                        <button onClick={() => setMessages([{ id: '0', role: 'assistant', content: "👋 Hi! I'm SkillSense AI. How can I help you today?", suggestions: ["What skills are in demand?", "Help me prepare for interviews", "What is NSQF?"] }])}
+                        <button onClick={async () => {
+                             if (confirm('Clear all chat history?')) {
+                                 await api.get('/ai/history?clear=true'); // Backend usually handles this or just clear local
+                                 setMessages([{ id: '0', role: 'assistant', content: "👋 Hi! I'm SkillSense AI. How can I help you today?", suggestions: ["What skills are in demand?", "Help me prepare for interviews", "What is NSQF?"] }]);
+                                 toast.success('Chat history cleared');
+                             }
+                        }}
                             style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 11, padding: '4px 8px', borderRadius: 6, transition: 'color 0.2s' }}
                             onMouseEnter={e => e.currentTarget.style.color = '#fff'}
                             onMouseLeave={e => e.currentTarget.style.color = '#475569'}

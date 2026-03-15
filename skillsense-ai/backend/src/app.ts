@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
@@ -18,6 +20,9 @@ import governanceRouter from './routes/governance.routes';
 import adminRouter from './routes/admin.routes';
 import contactRouter from './routes/contact.routes';
 import aiRouter from './routes/ai.routes';
+import assessmentRouter from './routes/assessment.routes';
+import profileRouter from './routes/profile.routes';
+import jobRouter from './routes/job.routes';
 
 const app = express();
 
@@ -81,12 +86,15 @@ app.get('/api/v1/ai-health', async (_req, res) => {
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/students', studentRouter);
 app.use('/api/v1/institutes', instituteRouter);
+app.use('/api/v1/ai', aiRouter);
+app.use('/api/v1/assessments', assessmentRouter);
+app.use('/api/v1/profile', profileRouter);
+app.use('/api/v1/jobs', jobRouter);
+app.use('/api/v1/contact', contactRouter);
 app.use('/api/v1/industry', industryRouter);
 app.use('/api/v1/analytics', analyticsRouter);
 app.use('/api/v1/governance', governanceRouter);
 app.use('/api/v1/admin', adminRouter);
-app.use('/api/v1/contact', contactRouter);
-app.use('/api/v1/ai', aiRouter);
 
 // ── 404 Handler ────────────────────────────────────────────────────────────
 app.use((_req, res) => {

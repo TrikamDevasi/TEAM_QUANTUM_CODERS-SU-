@@ -1,47 +1,96 @@
-import { Request, Response, NextFunction } from 'express';
-import { z } from 'zod';
-import ContactRequest from '../models/ContactRequest.model';
-import { sendDemoRequest } from '../services/email.service';
-import { buildApiResponse, parsePagination, buildPaginatedResponse } from '../utils/pagination.utils';
+import { Request, Response } from 'express';
+import IndustryInquiry from '../models/IndustryInquiry.model';
 
-const contactSchema = z.object({
-  name: z.string().min(2).max(100),
-  email: z.string().email(),
-  organization: z.string().min(2),
-  role: z.string().min(2),
-  phone: z.string().optional(),
-  message: z.string().min(10).max(2000),
-  privacyAccepted: z.boolean().refine((v) => v === true, {
-    message: 'Privacy policy must be accepted',
-  }),
-});
+/**
+ * @desc    Submit a new industry inquiry
+ * @route   POST /api/v1/contact/industry
+ * @access  Public
+ */
+export const submitInquiry = async (req: Request, res: Response) => {
+    try {
+        const { companyName, email, phone, plan, teamSize, message } = req.body;
 
-export const createContactRequest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const body = contactSchema.parse(req.body);
+        if (!companyName || !email || !plan || !teamSize) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide all required fields: companyName, email, plan, teamSize'
+            });
+        }
 
-    const contactReq = await ContactRequest.create(body);
+        const inquiry = await IndustryInquiry.create({
+            companyName,
+            email,
+            phone,
+            plan,
+            teamSize,
+            message
+        });
 
-    // Send emails — don't fail the request if email fails
-    sendDemoRequest(body.email, body.name, body.organization).catch(() => {});
-
-    res.status(201).json(buildApiResponse(
-      { id: contactReq._id, status: contactReq.status },
-      'Demo request received. We will be in touch within 1-2 business days.'
-    ));
-  } catch (err) { next(err); }
+        res.status(201).json({
+            success: true,
+            data: inquiry,
+            message: 'Inquiry submitted successfully. Our team will contact you soon.'
+        });
+    } catch (error: any) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server Error'
+        });
+    }
 };
 
-export const listContactRequests = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const { skip, limit, page } = parsePagination(req.query);
-    const filter: Record<string, unknown> = {};
-    if (req.query.status) filter.status = req.query.status;
+/**
+ * @desc    Get all industry inquiries
+ * @route   GET /api/v1/contact/industry
+ * @access  Private/Admin
+ */
+export const getInquiries = async (req: Request, res: Response) => {
+    try {
+        const inquiries = await IndustryInquiry.find().sort({ createdAt: -1 });
 
-    const [requests, total] = await Promise.all([
-      ContactRequest.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
-      ContactRequest.countDocuments(filter),
-    ]);
-    res.status(200).json(buildPaginatedResponse(requests, total, page, limit, 'Contact requests retrieved'));
-  } catch (err) { next(err); }
+        res.status(200).json({
+            success: true,
+            count: inquiries.length,
+            data: inquiries
+        });
+    } catch (error: any) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server Error'
+        });
+    }
+};
+
+/**
+ * @desc    Update inquiry status
+ * @route   PUT /api/v1/contact/industry/:id
+ * @access  Private/Admin
+ */
+export const updateInquiryStatus = async (req: Request, res: Response) => {
+    try {
+        const { status } = req.body;
+        
+        const inquiry = await IndustryInquiry.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true, runValidators: true }
+        );
+
+        if (!inquiry) {
+            return res.status(404).json({
+                success: false,
+                message: 'Inquiry not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: inquiry
+        });
+    } catch (error: any) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server Error'
+        });
+    }
 };

@@ -7,6 +7,7 @@ import {
   evaluateSkill,
   predictCareer,
   marketTrends,
+  getChatHistory,
 } from '../controllers/ai.controller';
 
 const router = Router();
@@ -16,6 +17,7 @@ router.use(protect);
 
 // Chat
 router.post('/chat', chat);
+router.get('/history', getChatHistory);
 
 // Skill Assessment
 router.post('/assess-skill',          assessSkill);

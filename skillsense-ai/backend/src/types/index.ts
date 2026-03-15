@@ -1,4 +1,10 @@
+import { IUser } from '../models/User.model';
+
 export type UserRole = 'student' | 'institute' | 'industry' | 'government' | 'admin';
+
+export interface AuthenticatedRequest extends Request {
+  user: IUser;
+}
 
 export interface JWTPayload {
   userId: string;

@@ -130,3 +130,41 @@ export const getFairnessDashboard = async (req: Request, res: Response, next: Ne
     ));
   } catch (err) { next(err); }
 };
+
+export const getStats = async (req: Request, res: Response) => {
+  const [totalUsers, totalStudents, totalInstitutes, totalAdmins, recentUsers] = await Promise.all([
+    User.countDocuments({ isDeleted: { $ne: true } }),
+    User.countDocuments({ role: 'student', isDeleted: { $ne: true } }),
+    User.countDocuments({ role: 'institute', isDeleted: { $ne: true } }),
+    User.countDocuments({ role: 'admin', isDeleted: { $ne: true } }),
+    User.find({ isDeleted: { $ne: true } })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('name email role createdAt lastLogin'),
+  ]);
+
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const newThisMonth = await User.countDocuments({
+    createdAt: { $gte: thirtyDaysAgo },
+    isDeleted: { $ne: true }
+  });
+
+  res.json({
+    success: true,
+    data: {
+      totalUsers,
+      totalStudents,
+      totalInstitutes,
+      totalAdmins,
+      newThisMonth,
+      recentUsers,
+    }
+  });
+};
+
+export const hardDeleteUser = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  await User.findByIdAndDelete(id);
+  res.json({ success: true, message: 'User permanently deleted' });
+};

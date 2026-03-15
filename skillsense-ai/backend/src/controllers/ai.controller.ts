@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import OpenAI from 'openai';
 import logger from '../utils/logger';
 import { aiService } from '../services/ai.service';
+import ChatSession from '../models/ChatSession.model';
 
 // ── OpenAI + Perplexity clients ──────────────────────────────────────────────
 
@@ -99,6 +100,28 @@ Context about this user: ${context || 'Student on SkillSense AI platform'}`;
     } catch { /* use defaults */ }
 
     res.status(200).json({ success: true, data: { reply, suggestions }, message: 'OK' });
+
+    // Save to ChatSession in background
+    if (userId !== 'anon') {
+      try {
+        await ChatSession.findOneAndUpdate(
+          { userId },
+          {
+            $push: {
+              messages: {
+                $each: [
+                  { role: 'user', content: message, timestamp: new Date() },
+                  { role: 'assistant', content: reply, timestamp: new Date() },
+                ],
+              },
+            },
+          },
+          { upsert: true, new: true }
+        );
+      } catch (err) {
+        logger.error('Error saving chat session:', err);
+      }
+    }
   } catch (err) {
     logger.error('AI chat error:', err);
     res.status(200).json({
@@ -215,11 +238,9 @@ Return ONLY valid JSON:
 
 // ── 4.  POST /api/v1/ai/predict-career ────────────────────────────────────────
 export const predictCareer = async (req: Request, res: Response): Promise<void> => {
-  const { skills = [], interests = [], education = '' } = req.body as {
-    skills: string[];
-    interests: string[];
-    education: string;
-  };
+  const { skills = [], interests = [], education = '' } = req.body;
+  const user = req.user as any;
+  const userId = user?.id || user?._id || 'anon';
 
   const prompt = `You are an expert Indian career counselor. Based on this student profile, predict top 3 career paths.
 
@@ -252,6 +273,20 @@ Return ONLY valid JSON:
     });
 
     const parsed = JSON.parse(completion.choices[0].message.content ?? '{"careers":[]}');
+    
+    // Save to database in background
+    if (userId !== 'anon') {
+      import('../models/CareerPrediction.model').then(({ default: CareerPrediction }) => {
+        CareerPrediction.create({
+          userId,
+          skills,
+          interests,
+          education,
+          careers: parsed.careers,
+        }).catch(err => logger.error('Error saving career prediction:', err));
+      });
+    }
+
     res.status(200).json({ success: true, data: parsed, message: 'OK' });
   } catch (err) {
     logger.error('predictCareer error:', err);
@@ -287,5 +322,22 @@ export const marketTrends = async (req: Request, res: Response): Promise<void> =
   } catch (err) {
     logger.error('marketTrends error:', err);
     res.status(500).json({ success: false, data: null, message: 'Market data unavailable.' });
+  }
+};
+
+export const getChatHistory = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as any;
+    const userId = user?.id || user?._id;
+    if (!userId) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const session = await ChatSession.findOne({ userId }).sort({ updatedAt: -1 });
+    res.json({ success: true, data: session?.messages || [] });
+  } catch (err) {
+    logger.error('getChatHistory error:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch chat history' });
   }
 };

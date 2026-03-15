@@ -7,6 +7,11 @@ import {
 } from 'recharts';
 import api from '../../../lib/api';
 import Link from 'next/link';
+import { useAuth } from '@/hooks/useAuth';
+import { useApi } from '@/hooks/useApi';
+import { AdminStats, User } from '@/types/api';
+import toast from 'react-hot-toast';
+import { Mail, Briefcase, Users, Phone, Calendar, Clock } from 'lucide-react';
 
 /* ── Design tokens ─────────────────────────────────────────────────────────── */
 const GOLD   = '#D4A843';
@@ -30,6 +35,18 @@ interface RecentUser {
     email: string;
     role: string;
     isActive: boolean;
+    createdAt: string;
+}
+
+interface IndustryInquiry {
+    _id: string;
+    companyName: string;
+    email: string;
+    phone?: string;
+    plan: string;
+    teamSize: string;
+    message?: string;
+    status: 'new' | 'contacted' | 'converted' | 'rejected';
     createdAt: string;
 }
 
@@ -100,56 +117,43 @@ const ChartTip = ({ active, payload, label }: { active?: boolean; payload?: { na
 
 /* ── Page ────────────────────────────────────────────────────────────────────── */
 export default function AdminDashboardPage() {
-    const [kpi, setKpi] = useState<KpiData | null>(null);
-    const [recentUsers, setRecentUsers] = useState<RecentUser[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const { user: authUser } = useAuth();
+    const { data: stats, isLoading: statsLoading, error: statsError } = useApi<AdminStats>('/admin/stats');
+    const { data: usersData, isLoading: usersLoading, error: usersError, refetch: refetchUsers } = useApi<User[]>('/admin/users?limit=5');
+    const { data: inquiriesData, isLoading: inquiriesLoading, refetch: refetchInquiries } = useApi<IndustryInquiry[]>('/contact/industry');
+    
+    const [activeTab, setActiveTab] = useState<'overview' | 'inquiries'>('overview');
     const [greeting, setGreeting] = useState('');
-    const [adminName, setAdminName] = useState('Admin');
 
-    /* ── greeting + user name ── */
     useEffect(() => {
         const h = new Date().getHours();
         setGreeting(h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening');
-        try {
-            const u = JSON.parse(localStorage.getItem('ss_user') || '{}');
-            if (u.name) setAdminName(u.name.split(' ')[0]);
-        } catch { /* noop */ }
     }, []);
 
-    /* ── Fetch live data ── */
-    const fetchData = useCallback(async () => {
-        setLoading(true);
-        setError(null);
+    const handleDeleteUser = async (id: string) => {
+        if (!confirm('Are you sure you want to permanently delete this user?')) return;
         try {
-            const { data } = await api.get('/admin/users?limit=5&sort=-createdAt');
-            const users: RecentUser[] = data.data ?? [];
-            setRecentUsers(users);
-
-            // Build KPI from real users list
-            const active   = users.filter((u: RecentUser) => u.isActive).length;
-            const studs    = users.filter((u: RecentUser) => u.role === 'student').length;
-            const insts    = users.filter((u: RecentUser) => u.role === 'institute').length;
-
-            // For total count, use a separate call
-            const totRes = await api.get('/admin/users?limit=1');
-            const total  = totRes.data.total ?? totRes.data.data?.length ?? users.length;
-
-            setKpi({
-                totalUsers:      total,
-                activeStudents:  studs,
-                totalInstitutes: insts,
-                revenue:         0, // [MOCK] — no billing module yet
-            });
-        } catch (err: unknown) {
-            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to load dashboard data';
-            setError(msg);
-        } finally {
-            setLoading(false);
+            await api.delete(`/admin/users/${id}`);
+            toast.success('User permanently deleted');
+            refetchUsers();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to delete user');
         }
-    }, []);
+    };
 
-    useEffect(() => { fetchData(); }, [fetchData]);
+    const handleUpdateInquiryStatus = async (id: string, status: string) => {
+        try {
+            await api.put(`/contact/industry/${id}`, { status });
+            toast.success(`Status updated to ${status}`);
+            refetchInquiries();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to update status');
+        }
+    };
+
+    const loading = statsLoading || usersLoading;
+    const error = statsError || usersError;
+    const recentUsers = usersData || [];
 
     return (
         <div style={{ color: '#fff', maxWidth: 1100, padding: '0 4px' }}>
@@ -158,27 +162,53 @@ export default function AdminDashboardPage() {
             {/* ── Header ── */}
             <div style={{ marginBottom: 28 }}>
                 <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, fontFamily: 'Space Grotesk, sans-serif' }}>
-                    {greeting}, <span style={{ color: GOLD }}>{adminName}!</span> 👋
+                    {greeting}, <span style={{ color: GOLD }}>{authUser?.name?.split(' ')[0] || 'Admin'}!</span> 👋
                 </h1>
                 <p style={{ margin: '6px 0 0', color: '#64748b', fontSize: 14 }}>
                     Here&apos;s what&apos;s happening on SkillSense AI today.
                 </p>
             </div>
 
+            {/* ── Tabs ── */}
+            <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: 28, paddingBottom: 2 }}>
+                {[
+                    { id: 'overview', label: 'Dashboard Overview', icon: '📊' },
+                    { id: 'inquiries', label: 'Industry Inquiries', icon: '💼' }
+                ].map(t => (
+                    <button
+                        key={t.id}
+                        onClick={() => setActiveTab(t.id as any)}
+                        style={{
+                            background: 'none', border: 'none', padding: '8px 4px',
+                            color: activeTab === t.id ? GOLD : '#64748b',
+                            fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                            borderBottom: activeTab === t.id ? `2px solid ${GOLD}` : '2px solid transparent',
+                            display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s',
+                            marginBottom: -2
+                        }}
+                    >
+                        <span>{t.icon}</span>
+                        {t.label}
+                    </button>
+                ))}
+            </div>
+
             {/* ── Error ── */}
             {error && (
                 <div style={{ padding: '14px 20px', borderRadius: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: RED, fontSize: 13, marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     {error}
-                    <button onClick={fetchData} style={{ background: 'none', border: 'none', color: RED, cursor: 'pointer', fontSize: 12, textDecoration: 'underline' }}>Retry</button>
                 </div>
             )}
 
-            {/* ── KPI Cards ── */}
+            {/* ── Content ── */}
+            {activeTab === 'overview' ? (
+                <>
+                    {/* ── KPI Cards ── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 28 }}>
-                <KpiCard label="Total Users"      value={kpi?.totalUsers ?? 0}      icon="👥" color={GOLD}   delta="12 new" loading={loading} />
-                <KpiCard label="Active Students"  value={kpi?.activeStudents ?? 0}  icon="🎓" color={INDIGO} delta="5"      loading={loading} />
-                <KpiCard label="Institutes"       value={kpi?.totalInstitutes ?? 0} icon="🏫" color={PURPLE} delta="2"      loading={loading} />
-                <KpiCard label="Revenue (MOCK)"   value="₹—"                        icon="💰" color={GREEN}                loading={loading} />
+                <KpiCard label="Total Users"      value={stats?.totalUsers ?? 0}      icon="👥" color={GOLD}   delta={`${stats?.newThisMonth ?? 0} new`} loading={loading} />
+                <KpiCard label="Total Students"   value={stats?.totalStudents ?? 0}   icon="🎓" color={INDIGO} loading={loading} />
+                <KpiCard label="Institutes"       value={stats?.totalInstitutes ?? 0} icon="🏫" color={PURPLE} loading={loading} />
+                <KpiCard label="Admin Users"      value={stats?.totalAdmins ?? 0}     icon="🛡️" color={GREEN}  loading={loading} />
             </div>
 
             {/* ── Quick Actions ── */}
@@ -263,7 +293,7 @@ export default function AdminDashboardPage() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                         <thead>
                             <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
-                                {['Name', 'Email', 'Role', 'Status', 'Joined'].map(h => (
+                                {['Name', 'Email', 'Role', 'Status', 'Joined', 'Actions'].map(h => (
                                     <th key={h} style={{ padding: '10px 16px', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                                 ))}
                             </tr>
@@ -296,6 +326,14 @@ export default function AdminDashboardPage() {
                                     <td style={{ padding: '12px 16px', color: '#64748b', fontSize: 12 }}>
                                         {new Date(u.createdAt).toLocaleDateString('en-IN')}
                                     </td>
+                                    <td style={{ padding: '12px 16px' }}>
+                                        <button 
+                                            onClick={() => handleDeleteUser(u._id || (u as any).id)}
+                                            style={{ background: 'none', border: 'none', color: RED, cursor: 'pointer', fontSize: 11, fontWeight: 600 }}
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -325,7 +363,119 @@ export default function AdminDashboardPage() {
                         </div>
                     ))}
                 </div>
-            </div>
+                </div>
+                </>
+            ) : (
+                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
+                    <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Industry Access Inquiries</div>
+                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Manage B2B and institutional interest from the landing page</div>
+                        </div>
+                        <button onClick={refetchInquiries} style={{ background: 'none', border: `1px solid ${GOLD}40`, color: GOLD, padding: '4px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>Refresh</button>
+                    </div>
+
+                    {inquiriesLoading ? (
+                        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {[1, 2, 3].map(i => <Skeleton key={i} h={40} />)}
+                        </div>
+                    ) : (
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                                <thead>
+                                    <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
+                                        {['Company', 'Plan', 'Team Size', 'Contact', 'Date', 'Status', 'Actions'].map(h => (
+                                            <th key={h} style={{ padding: '12px 16px', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {!inquiriesData?.length ? (
+                                        <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>No inquiries yet</td></tr>
+                                    ) : inquiriesData.map((inq, i) => (
+                                        <tr key={inq._id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                                            <td style={{ padding: '16px' }}>
+                                                <div style={{ color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                    <Briefcase size={14} style={{ color: GOLD }} />
+                                                    {inq.companyName}
+                                                </div>
+                                                {inq.message && <div style={{ fontSize: 10, color: '#64748b', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={10} /> Message: {inq.message.substring(0, 30)}...</div>}
+                                            </td>
+                                            <td style={{ padding: '16px' }}>
+                                                <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: inq.plan === 'Enterprise' ? `${PURPLE}18` : `${GOLD}18`, color: inq.plan === 'Enterprise' ? PURPLE : GOLD, border: `1px solid ${inq.plan === 'Enterprise' ? PURPLE : GOLD}30` }}>
+                                                    {inq.plan}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '16px', color: '#94a3b8' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    <Users size={12} />
+                                                    {inq.teamSize}
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '16px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#fff', fontSize: 12 }}>
+                                                    <Mail size={12} style={{ color: INDIGO }} />
+                                                    {inq.email}
+                                                </div>
+                                                {inq.phone && (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b', fontSize: 11, marginTop: 4 }}>
+                                                        <Phone size={10} />
+                                                        {inq.phone}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td style={{ padding: '16px', color: '#64748b', fontSize: 12 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    <Calendar size={12} />
+                                                    {new Date(inq.createdAt).toLocaleDateString('en-IN')}
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '16px' }}>
+                                                <StatusBadge status={inq.status} />
+                                            </td>
+                                            <td style={{ padding: '16px' }}>
+                                                <select 
+                                                    value={inq.status}
+                                                    onChange={(e) => handleUpdateInquiryStatus(inq._id, e.target.value as any)}
+                                                    style={{ background: '#08060f', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: 11, borderRadius: 6, padding: '4px 8px', outline: 'none' }}
+                                                >
+                                                    <option value="new">New</option>
+                                                    <option value="contacted">Contacted</option>
+                                                    <option value="converted">Convert</option>
+                                                    <option value="rejected">Reject</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
+    );
+}
+
+function StatusBadge({ status }: { status: IndustryInquiry['status'] }) {
+    const config = {
+        new:       { color: AMBER,  label: 'NEW' },
+        contacted: { color: INDIGO, label: 'CONTACTED' },
+        converted: { color: GREEN,  label: 'CONVERTED' },
+        rejected:  { color: RED,    label: 'REJECTED' },
+    }[status] || { color: '#64748b', label: status };
+
+    return (
+        <span style={{ 
+            fontSize: 9, 
+            fontWeight: 800, 
+            padding: '2px 6px', 
+            borderRadius: 6, 
+            background: `${config.color}15`, 
+            color: config.color, 
+            border: `1px solid ${config.color}30` 
+        }}>
+            {config.label}
+        </span>
     );
 }

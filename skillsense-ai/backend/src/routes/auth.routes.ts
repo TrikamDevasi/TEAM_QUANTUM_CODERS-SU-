@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import passport from 'passport';
 import jwt from 'jsonwebtoken';
-import { register, login, refreshTokens, logout, getMe } from '../controllers/auth.controller';
+import { register, login, refreshTokens, logout, getMe, getPublicStats } from '../controllers/auth.controller';
 import { protect } from '../middleware/auth.middleware';
 import { authLimiter } from '../middleware/rateLimit.middleware';
 import { IUser } from '../models/User.model';
@@ -43,6 +43,7 @@ router.post('/register', authLimiter, register);
 router.post('/login', authLimiter, login);
 router.get('/me', protect, getMe);
 router.post('/logout', protect, logout);
+router.get('/stats', getPublicStats);
 export { refreshTokens }; // keep named export available if other modules import it
 
 // ── Google OAuth ───────────────────────────────────────────────────────────────

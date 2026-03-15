@@ -1,12 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
     RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
 import { sampleStudents } from '../../../data/sampleStudents';
 import { downloadPageAsPDF } from '../../../utils/downloadPDF';
+import { useAuth } from '@/hooks/useAuth';
+import { useApi } from '@/hooks/useApi';
+import { AssessmentHistory, ChatMessage } from '@/types/api';
 
 const S = sampleStudents[0];
 const GOLD   = '#D4A843';
@@ -82,24 +86,24 @@ const Tip = ({ active, payload, label }: any) => {
 };
 
 export default function StudentPage() {
+    const { user, isLoading: authLoading } = useAuth();
+    const { data: assessmentHistory, isLoading: assessmentsLoading } = useApi<AssessmentHistory[]>('/assessments/history');
+    const { data: chatHistory, isLoading: chatLoading } = useApi<{ messages: ChatMessage[] }>('/ai/history');
+    
     const [active, setActive] = useState<string>('overview');
-    const [userName, setUserName] = useState(S.name);
-
     const [greeting, setGreeting] = useState('');
 
     useEffect(() => {
         const h = new Date().getHours();
         setGreeting(h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening');
-        try {
-            const stored = localStorage.getItem('ss_user');
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                if (parsed.name) setUserName(parsed.name);
-            }
-        } catch { }
     }, []);
 
-    const firstName = userName.split(' ')[0];
+    const firstName = user?.name?.split(' ')[0] || 'Student';
+    const lastLoginFormatted = user?.lastLogin ? new Date(user.lastLogin).toLocaleString('en-IN', {
+        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+    }) : 'First time login';
+
+    if (authLoading) return <div style={{ padding: 40, color: '#64748b' }}>Loading your dashboard...</div>;
 
     return (
         <div>
@@ -109,7 +113,9 @@ export default function StudentPage() {
                     <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', margin: 0, fontFamily: 'Space Grotesk, sans-serif' }}>
                         {greeting}, <span style={{ color: GOLD }}>{firstName}!</span> 👋
                     </h1>
-                    <p style={{ color: '#64748b', fontSize: 14, marginTop: 6 }}>Your AI Skill Score improved by <span style={{ color: GREEN, fontWeight: 700 }}>+3 points</span> this week. Keep it up!</p>
+                    <p style={{ color: '#64748b', fontSize: 13, marginTop: 6 }}>
+                        Last login: <span style={{ color: AMBER, fontWeight: 600 }}>{lastLoginFormatted}</span>
+                    </p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                     {/* Circular AI Skill Score */}
@@ -296,9 +302,6 @@ export default function StudentPage() {
                             <div style={{ fontSize: 11, color: '#64748b', marginBottom: 16 }}>Top roles that match your current skills</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                                 {[
-                                    { role: 'Senior Full-Stack Dev', match: 86, color: GOLD },
-                                    { role: 'Cloud Solutions Architect', match: 78, color: INDIGO },
-                                    { role: 'DevOps Engineer', match: 74, color: '#34d399' },
                                     { role: 'AI/ML Engineer', match: 62, color: ORANGE },
                                 ].map((c, i) => (
                                     <div key={i}>
@@ -313,6 +316,29 @@ export default function StudentPage() {
                                 ))}
                             </div>
                         </div>
+                    </div>
+
+                    {/* Real Assessment History */}
+                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '20px' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: 'Space Grotesk, sans-serif', marginBottom: 16 }}>Assessment History</div>
+                        {assessmentsLoading ? <div style={{ color: '#64748b', fontSize: 12 }}>Loading history...</div> : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                {assessmentHistory?.length === 0 ? (
+                                    <p style={{ color: '#64748b', fontSize: 12 }}>No assessments taken yet. <Link href="/student/assessment" style={{ color: GOLD }}>Take one now</Link></p>
+                                ) : assessmentHistory?.map((as, i) => (
+                                    <div key={as._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{as.category}</div>
+                                            <div style={{ fontSize: 11, color: '#64748b' }}>{new Date(as.completedAt).toLocaleDateString()}</div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: GOLD }}>{as.score}/{as.totalQuestions}</div>
+                                            <div style={{ fontSize: 10, color: GREEN }}>Completed</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

@@ -9,30 +9,19 @@ interface IResponse {
 
 export interface IAssessment extends Document {
   studentId: mongoose.Types.ObjectId;
-  skillId: mongoose.Types.ObjectId;
-  responses: IResponse[];
+  category: string;
   score: number;
-  adaptiveLevel: number;
+  totalQuestions: number;
   aiAnalysis: string;
-  fairnessFlags: string[];
   completedAt: Date;
 }
 
 const AssessmentSchema = new Schema<IAssessment>({
-  studentId: { type: Schema.Types.ObjectId, ref: 'Student', required: true },
-  skillId: { type: Schema.Types.ObjectId, ref: 'Skill', required: true },
-  responses: [
-    {
-      questionId: { type: Schema.Types.ObjectId, ref: 'Question' },
-      answer: { type: String },
-      isCorrect: { type: Boolean },
-      timeTaken: { type: Number },
-    },
-  ],
+  studentId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  category: { type: String, required: true },
   score: { type: Number, required: true },
-  adaptiveLevel: { type: Number, default: 1 },
+  totalQuestions: { type: Number, required: true },
   aiAnalysis: { type: String, default: '' },
-  fairnessFlags: [{ type: String }],
   completedAt: { type: Date, default: Date.now },
 });
 
