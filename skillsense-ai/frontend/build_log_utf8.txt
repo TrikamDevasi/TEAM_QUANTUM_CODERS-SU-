@@ -1,0 +1,262 @@
+﻿
+> skillsense-ai-frontend@1.0.0 build
+> next build
+
+node.exe :  ΓÜá 
+Warning: Next.js 
+inferred your 
+workspace root, but it 
+may not be correct.
+At line:1 char:1
++ & "C:\nvm4w\nodejs/no
+de.exe" "C:\nvm4w\nodej
+s/node_modules/npm/bin/
+np ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: ( ΓÜá Warning:   
+  N...not be correc    
+t.:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+ We detected multiple 
+lockfiles and selected 
+the directory of C:\Use
+rs\trika\Documents\skil
+lsense\TEAM_QUANTUM_COD
+ERS-SU-\skillsense-ai\p
+ackage-lock.json as 
+the root directory.
+ To silence this 
+warning, set `outputFil
+eTracingRoot` in your 
+Next.js config, or 
+consider removing one 
+of the lockfiles if 
+it's not needed.
+   See https://nextjs.o
+rg/docs/app/api-referen
+ce/config/next-config-j
+s/output#caveats for 
+more information.
+ Detected additional 
+lockfiles: 
+   * C:\Users\trika\Doc
+uments\skillsense\TEAM_
+QUANTUM_CODERS-SU-\skil
+lsense-ai\frontend\pack
+age-lock.json
+
+   Γû▓ Next.js 15.5.12
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+Failed to compile.
+
+./app/(dashboard)/layou
+t.tsx
+Error:   [31mx[0m 
+You're importing a 
+component that needs 
+`useState`. This React 
+Hook only works in a 
+Client Component. To 
+fix, mark the file (or 
+its parent) with the 
+`"use client"` 
+directive.
+  [31m|[0m
+  [31m|[0m  Learn 
+more: https://nextjs.or
+g/docs/app/api-referenc
+e/directives/use-client
+  [31m|[0m
+
+   ,-[[36;1;4mC:\Users
+\trika\Documents\skills
+ense\TEAM_QUANTUM_CODER
+S-SU-\skillsense-ai\fro
+ntend\app\(dashboard)\l
+ayout.tsx[0m:1:1]
+ [2m1[0m | import { 
+useState, useEffect, 
+useRef } from 'react';
+   : [35;1m         
+^^^^^^^^[0m
+ [2m2[0m | import 
+Link from 'next/link';
+ [2m3[0m | import { 
+usePathname, useRouter 
+} from 
+'next/navigation';
+ [2m3[0m | import { 
+   `----
+  [31mx[0m You're 
+importing a component 
+that needs 
+`useEffect`. This 
+React Hook only works 
+in a Client Component. 
+To fix, mark the file 
+(or its parent) with 
+the `"use client"` 
+directive.
+  [31m|[0m
+  [31m|[0m  Learn 
+more: https://nextjs.or
+g/docs/app/api-referenc
+e/directives/use-client
+  [31m|[0m
+
+   ,-[[36;1;4mC:\Users
+\trika\Documents\skills
+ense\TEAM_QUANTUM_CODER
+S-SU-\skillsense-ai\fro
+ntend\app\(dashboard)\l
+ayout.tsx[0m:1:1]
+ [2m1[0m | import { 
+useState, useEffect, 
+useRef } from 'react';
+   : [35;1m           
+        ^^^^^^^^^[0m
+ [2m2[0m | import 
+Link from 'next/link';
+ [2m3[0m | import { 
+usePathname, useRouter 
+} from 
+'next/navigation';
+ [2m3[0m | import { 
+   `----
+  [31mx[0m You're 
+importing a component 
+that needs `useRef`. 
+This React Hook only 
+works in a Client 
+Component. To fix, 
+mark the file (or its 
+parent) with the `"use 
+client"` directive.
+  [31m|[0m
+  [31m|[0m  Learn 
+more: https://nextjs.or
+g/docs/app/api-referenc
+e/directives/use-client
+  [31m|[0m
+
+   ,-[[36;1;4mC:\Users
+\trika\Documents\skills
+ense\TEAM_QUANTUM_CODER
+S-SU-\skillsense-ai\fro
+ntend\app\(dashboard)\l
+ayout.tsx[0m:1:1]
+ [2m1[0m | import { 
+useState, useEffect, 
+useRef } from 'react';
+   : [35;1m           
+                   
+^^^^^^[0m
+ [2m2[0m | import 
+Link from 'next/link';
+ [2m3[0m | import { 
+usePathname, useRouter 
+} from 
+'next/navigation';
+ [2m3[0m | import { 
+   `----
+  [31mx[0m You're 
+importing a component 
+that needs 
+`usePathname`. This 
+React Hook only works 
+in a Client Component. 
+To fix, mark the file 
+(or its parent) with 
+the `"use client"` 
+directive.
+  [31m|[0m
+  [31m|[0m  Learn 
+more: https://nextjs.or
+g/docs/app/api-referenc
+e/directives/use-client
+  [31m|[0m
+
+   ,-[[36;1;4mC:\Users
+\trika\Documents\skills
+ense\TEAM_QUANTUM_CODER
+S-SU-\skillsense-ai\fro
+ntend\app\(dashboard)\l
+ayout.tsx[0m:3:1]
+ [2m1[0m | import { 
+useState, useEffect, 
+useRef } from 'react';
+ [2m2[0m | import 
+Link from 'next/link';
+ [2m3[0m | import { 
+usePathname, useRouter 
+} from 
+'next/navigation';
+   : [35;1m         
+^^^^^^^^^^^[0m
+ [2m4[0m | import { 
+ [2m5[0m |     
+LogOut, 
+ [2m5[0m |     User 
+as UserIcon, 
+   `----
+  [31mx[0m You're 
+importing a component 
+that needs 
+`useRouter`. This 
+React Hook only works 
+in a Client Component. 
+To fix, mark the file 
+(or its parent) with 
+the `"use client"` 
+directive.
+  [31m|[0m
+  [31m|[0m  Learn 
+more: https://nextjs.or
+g/docs/app/api-referenc
+e/directives/use-client
+  [31m|[0m
+
+   ,-[[36;1;4mC:\Users
+\trika\Documents\skills
+ense\TEAM_QUANTUM_CODER
+S-SU-\skillsense-ai\fro
+ntend\app\(dashboard)\l
+ayout.tsx[0m:3:1]
+ [2m1[0m | import { 
+useState, useEffect, 
+useRef } from 'react';
+ [2m2[0m | import 
+Link from 'next/link';
+ [2m3[0m | import { 
+usePathname, useRouter 
+} from 
+'next/navigation';
+   : [35;1m           
+           
+^^^^^^^^^[0m
+ [2m4[0m | import { 
+ [2m5[0m |     
+LogOut, 
+ [2m5[0m |     User 
+as UserIcon, 
+   `----
+
+Import trace for 
+requested module:
+./app/(dashboard)/layou
+t.tsx
+
+
+> Build failed because 
+of webpack errors

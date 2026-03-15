@@ -1,0 +1,6 @@
+﻿.next/types/app/(auth)/layout.ts(2,24): error TS2307: Cannot find module '../../../../app/(auth)/layout.js' or its corresponding type declarations.
+.next/types/app/(auth)/layout.ts(5,29): error TS2307: Cannot find module '../../../../app/(auth)/layout.js' or its corresponding type declarations.
+.next/types/app/(auth)/login/page.ts(2,24): error TS2307: Cannot find module '../../../../../app/(auth)/login/page.js' or its corresponding type declarations.
+.next/types/app/(auth)/login/page.ts(5,29): error TS2307: Cannot find module '../../../../../app/(auth)/login/page.js' or its corresponding type declarations.
+.next/types/app/(auth)/register/page.ts(2,24): error TS2307: Cannot find module '../../../../../app/(auth)/register/page.js' or its corresponding type declarations.
+.next/types/app/(auth)/register/page.ts(5,29): error TS2307: Cannot find module '../../../../../app/(auth)/register/page.js' or its corresponding type declarations.

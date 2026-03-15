@@ -1,0 +1,6 @@
+﻿.next/types/app/(auth)/login/page.ts(2,24): error TS2306: File 'C:/Users/trika/Documents/skillsense/TEAM_QUANTUM_CODERS-SU-/skillsense-ai/frontend/app/(auth)/login/page.tsx' is not a module.
+.next/types/app/(auth)/login/page.ts(5,29): error TS2306: File 'C:/Users/trika/Documents/skillsense/TEAM_QUANTUM_CODERS-SU-/skillsense-ai/frontend/app/(auth)/login/page.tsx' is not a module.
+.next/types/app/(auth)/register/page.ts(2,24): error TS2306: File 'C:/Users/trika/Documents/skillsense/TEAM_QUANTUM_CODERS-SU-/skillsense-ai/frontend/app/(auth)/register/page.tsx' is not a module.
+.next/types/app/(auth)/register/page.ts(5,29): error TS2306: File 'C:/Users/trika/Documents/skillsense/TEAM_QUANTUM_CODERS-SU-/skillsense-ai/frontend/app/(auth)/register/page.tsx' is not a module.
+.next/types/validator.ts(42,39): error TS2306: File 'C:/Users/trika/Documents/skillsense/TEAM_QUANTUM_CODERS-SU-/skillsense-ai/frontend/app/(auth)/login/page.tsx' is not a module.
+.next/types/validator.ts(51,39): error TS2306: File 'C:/Users/trika/Documents/skillsense/TEAM_QUANTUM_CODERS-SU-/skillsense-ai/frontend/app/(auth)/register/page.tsx' is not a module.
