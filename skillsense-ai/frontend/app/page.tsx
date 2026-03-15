@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import IndustryPlans from '@/components/IndustryPlans';
+import api from '@/lib/api';
 
 /* ─────────────────────────── helpers ───────────────────────────────────── */
 
@@ -274,11 +275,11 @@ export default function LandingPage() {
     const [stats, setStats] = useState(DEFAULT_STATS);
 
     useEffect(() => {
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/auth/stats`)
-            .then(res => res.json())
+        api.get('/auth/stats')
             .then(res => {
-                if (res.success && res.data) {
-                    const { totalUsers, coursesCount, partnersCount, accuracy } = res.data;
+                const data = res.data;
+                if (data.success && data.data) {
+                    const { totalUsers, coursesCount, partnersCount, accuracy } = data.data;
                     setStats([
                         { target: totalUsers, suffix: '+', label: 'Students Enrolled' },
                         { target: coursesCount, suffix: '+', label: 'Courses Available' },

@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { X, Send, CheckCircle2 } from 'lucide-react';
-import axios from 'axios';
+import api from '@/lib/api';
 
 interface IndustryModalProps {
     isOpen: boolean;
@@ -32,8 +32,7 @@ export default function IndustryModal({ isOpen, onClose, planName }: IndustryMod
         setError('');
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-            await axios.post(`${apiUrl}/api/v1/contact/industry`, {
+            await api.post('/contact/industry', {
                 ...formData,
                 plan: planName
             });
